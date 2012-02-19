@@ -18,7 +18,7 @@ module DataObjects
     # Instantiate the Transaction subclass that's appropriate for this uri scheme
     def self.create_for_uri(uri)
       uri = uri.is_a?(String) ? URI::parse(uri) : uri
-      DataObjects.const_get(uri.scheme.capitalize)::Transaction.new(uri)
+      DataObjects.adapter_name(uri)::Transaction.new(uri)
     end
 
     #

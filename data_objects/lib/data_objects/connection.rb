@@ -18,21 +18,9 @@ module DataObjects
       when :java
         warn 'JNDI URLs (connection strings) are only for use with JRuby' unless RUBY_PLATFORM =~ /java/
 
-        driver   = uri.query.delete('scheme')
-        driver   = uri.query.delete('driver')
-
-        conn_uri = uri.to_s.gsub(/\?$/, '')
+        conn_uri = uri.to_s.gsub(/\?.*$/, '')
       when :jdbc
         warn 'JDBC URLs (connection strings) are only for use with JRuby' unless RUBY_PLATFORM =~ /java/
-
-        path = uri.subscheme
-        driver = if path.split(':').first == 'sqlite'
-          'sqlite3'
-        elsif path.split(':').first == 'postgresql'
-          'postgres'
-        else
-          path.split(':').first
-        end
 
         conn_uri = uri_s # NOTE: for now, do not reformat this JDBC connection
                          # string -- or, in other words, do not let
@@ -45,14 +33,7 @@ module DataObjects
         conn_uri = uri
       end
 
-      # Exceptions to how a driver class is determined for a given URI
-      driver_class = if driver == 'sqlserver'
-        'SqlServer'
-      else
-        driver.capitalize
-      end
-
-      clazz = DataObjects.const_get(driver_class)::Connection
+      clazz = DataObjects.adapter_name(uri)::Connection
       unless clazz.method_defined? :close
         if (uri.scheme.to_sym == :java)
           clazz.class_eval do

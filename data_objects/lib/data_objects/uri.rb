@@ -2,6 +2,57 @@ require 'addressable/uri'
 
 module DataObjects
 
+  def self.adapter_name(uri)
+
+    adapter = uri.scheme
+    case adapter
+    when 'java'
+      adapter   = uri.query['adapter']
+      unless adapter
+        # discover the real adapter
+        jndi_uri = "#{uri.scheme}:#{uri.path}"
+        context = javax.naming.InitialContext.new 
+        ds= context.lookup(jndi_uri)
+        begin
+          conn = ds.getConnection
+          metadata = conn.getMetaData
+          driver_name = metadata.getDriverName
+
+          adapter = case driver_name
+            when /mysql/i  then 'mysql'
+            when /oracle/i then 'oracle'
+            when /postgres/i then 'postgres'
+            when /sqlite/i then 'sqlite3'
+            when /sqlserver|tds|Microsoft SQL/i then 'sqlserver'
+            else
+              nil # not supported
+            end # case
+        ensure
+          conn.close
+        end
+      end
+    when 'jdbc'
+      path = uri.subscheme
+      driver = if path.split(':').first == 'sqlite'
+        'sqlite3'
+      elsif path.split(':').first == 'postgresql'
+        'postgres'
+      else
+        path.split(':').first
+      end
+    end
+
+      # Exceptions to how a adapter class is determined for a given URI
+    adapter_class = if adapter == 'sqlserver'
+        'SqlServer'
+      else
+        adapter.capitalize
+      end
+
+    const_get(adapter_class)
+  end
+
+
   # A DataObjects URI is of the form scheme://user:password@host:port/path#fragment
   #
   # The elements are all optional except scheme and path:
