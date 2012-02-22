@@ -13,8 +13,8 @@ module DataObjects
         jndi_uri = "#{uri.scheme}:#{uri.path}"
         context = javax.naming.InitialContext.new 
         ds= context.lookup(jndi_uri)
+        conn = ds.getConnection
         begin
-          conn = ds.getConnection
           metadata = conn.getMetaData
           driver_name = metadata.getDriverName
 
