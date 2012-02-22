@@ -2,6 +2,8 @@ package do_oracle;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.net.URI;
 
 import java.sql.Connection;
@@ -137,6 +139,49 @@ public class OracleDriverDefinition extends AbstractDriverDefinition {
         }
     }
 
+    protected Statement getRealStatement(Statement ps) {
+        try
+        {
+            // if the DataSource is wrapped by DBCP, 
+            // we could be getting a 'org.apache.tomcat.dbcp.dbcp.DelegatingPreparedStatement'
+
+            // in that case, we can get the real PreparedStatement by calling getDelegate
+            // use reflection because I don't want to introduce dependency to DBCP
+            
+            final Class clsDelgatingStatement = Class.forName("org.apache.tomcat.dbcp.dbcp.DelegatingStatement");
+
+            final Method methodGetDelegate = clsDelgatingStatement.getMethod("getDelegate");
+            Object o = ps;
+                                
+            while( clsDelgatingStatement.isInstance(o)) {
+                o = methodGetDelegate.invoke(o);                        
+            }
+            if (o instanceof Statement) {
+                ps = (Statement)o; 
+            }
+        } catch (ClassNotFoundException e) {
+            // ignore
+        } catch (SecurityException e) {
+            // ignore
+        } catch (NoSuchMethodException e) {
+            // ignore
+        } catch (IllegalArgumentException e) {
+            // ignore
+        } catch (IllegalAccessException e) {
+            // ignore
+        } catch (InvocationTargetException e) {            
+            Throwable t = e.getCause();
+            if (t instanceof Error) {
+                throw (Error)t;
+            }
+            if (t instanceof RuntimeException) {
+                throw (RuntimeException)t;
+            }
+        }        
+
+        return ps;
+    }
+
     /**
      *
      * @param sqlText
@@ -147,7 +192,7 @@ public class OracleDriverDefinition extends AbstractDriverDefinition {
      */
     @Override
     public boolean registerPreparedStatementReturnParam(String sqlText, PreparedStatement ps, int idx) throws SQLException {
-        OraclePreparedStatement ops = (OraclePreparedStatement) ps;
+        OraclePreparedStatement ops = (OraclePreparedStatement)getRealStatement(ps);
         Pattern p = Pattern.compile("^\\s*INSERT.+RETURNING.+INTO\\s+", Pattern.CASE_INSENSITIVE);
         Matcher m = p.matcher(sqlText);
         if (m.find()) {
@@ -165,7 +210,7 @@ public class OracleDriverDefinition extends AbstractDriverDefinition {
      */
     @Override
     public long getPreparedStatementReturnParam(PreparedStatement ps) throws SQLException {
-        OraclePreparedStatement ops = (OraclePreparedStatement) ps;
+        OraclePreparedStatement ops = (OraclePreparedStatement)getRealStatement(ps);
         ResultSet rs = ops.getReturnResultSet();
         try {
             if (rs.next()) {
@@ -293,6 +338,7 @@ public class OracleDriverDefinition extends AbstractDriverDefinition {
     public String statementToString(Statement s) {
         // String sqlText = ((oracle.jdbc.driver.OraclePreparedStatement) s).getOriginalSql();
         // in ojdbc5 need to retrieve statement field at first
+        s = getRealStatement(s);
         Statement s2 = (Statement) getFieldValue(s, "statement");
         if (s2 == null)
             s2 = s;
