@@ -29,7 +29,6 @@ module DataObjects
                          # java.sql.DriverManager.getConnection to throw a
                          # 'No suitable driver found for...' exception.
       else
-        driver   = uri.scheme
         conn_uri = uri
       end
 

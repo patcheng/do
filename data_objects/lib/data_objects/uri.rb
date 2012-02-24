@@ -33,18 +33,17 @@ module DataObjects
       end
     when 'jdbc'
       path = uri.subscheme
-      driver = if path.split(':').first == 'sqlite'
-        'sqlite3'
-      elsif path.split(':').first == 'postgresql'
-        'postgres'
-      else
-        path.split(':').first
-      end
+      adapter = path.split(':').first
     end
 
-      # Exceptions to how a adapter class is determined for a given URI
-    adapter_class = if adapter == 'sqlserver'
+    # Exceptions to how a adapter class is determined for a given URI
+    adapter_class = case adapter
+      when 'sqlserver'
         'SqlServer'
+      when /sqlite/
+        'Sqlite3'
+      when /postgres/
+        'Postgres'
       else
         adapter.capitalize
       end

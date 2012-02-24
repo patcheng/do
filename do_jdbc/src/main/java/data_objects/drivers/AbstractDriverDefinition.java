@@ -211,7 +211,7 @@ public abstract class AbstractDriverDefinition implements DriverDefinition {
      * @param scheme
      */
     protected void verifyScheme(String scheme) {
-        if (!this.scheme.equals(scheme)) {
+        if (!this.scheme.equals(scheme) && !this.jdbcScheme.equals(scheme)) {
             throw new RuntimeException("scheme mismatch, expected: "
                     + this.scheme + " but got: " + scheme);
         }
