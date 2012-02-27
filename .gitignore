@@ -21,7 +21,6 @@ stash
 cross
 coverage
 **/test.*.*
-do_*/lib/do_*/*.jar
 do_*/**/target
 do_*/pkg
 do_*/target
