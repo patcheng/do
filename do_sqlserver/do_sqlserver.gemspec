@@ -29,6 +29,7 @@ Gem::Specification.new do |s|
     "lib/do_sqlserver.rb",
     "lib/do_sqlserver/transaction.rb",
     "lib/do_sqlserver/version.rb",
+    "lib/do_sqlserver/do_sqlserver.jar",
     "spec/command_spec.rb",
     "spec/connection_spec.rb",
     "spec/encoding_spec.rb",

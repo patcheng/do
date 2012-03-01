@@ -2,7 +2,6 @@ require 'data_objects'
 if RUBY_PLATFORM =~ /java/
   require 'do_jdbc'
   require 'java'
-  require 'do_jdbc/sqlserver'   # the JDBC driver, packaged as a gem
 else # MRI and Ruby 1.9
   require 'dbi' unless defined?(DBI)
   require 'dbd_odbc_patch'      # a monkey patch for DNS-less connections
