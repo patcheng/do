@@ -12,7 +12,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
-import oracle.jdbc.OraclePreparedStatement;
 import oracle.jdbc.OracleTypes;
 
 import java.util.Properties;
@@ -139,6 +138,78 @@ public class OracleDriverDefinition extends AbstractDriverDefinition {
         }
     }
 
+    protected static boolean isMethodEquals(Method method, String methodName, Object... parameters)
+    {
+        if (! methodName.equals(method.getName())) {
+            return false;
+        }
+
+        if (parameters != null) {
+            Class []parameterTypes = method.getParameterTypes();
+
+            if (parameterTypes.length != parameters.length) {
+                return false;
+            }
+
+            for(int i = 0; i < parameters.length; i++) {
+                Object parameter = parameters[i];
+                Class parameterClass = parameter.getClass();
+                Class parameterType = parameterTypes[i];
+
+                if (parameterType.isPrimitive()) {
+
+                    if (parameterType == Integer.TYPE) {
+                        parameterType = Integer.class;
+                    }
+                    if (parameterType == Float.TYPE) {
+                        parameterType = Float.class;
+                    }
+                    if (parameterType == Double.TYPE) {
+                        parameterType = Double.class;
+                    }
+                    if (parameterType == Byte.TYPE) {
+                        parameterType = Byte.class;
+                    }
+                    if (parameterType == Character.TYPE) {
+                        parameterType = Character.class;
+                    }
+                    if (parameterType == Short.TYPE) {
+                        parameterType = Short.class;
+                    }
+                    if (parameterType == Long.TYPE) {
+                        parameterType = Long.class;
+                    }
+                }
+                if (! parameterType.isAssignableFrom(parameterClass)) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    protected static Object invoke(Object object, String methodName, Object... parameters)
+    {
+        Class klass = object.getClass();
+
+        Method []methods = klass.getMethods();
+
+        for( Method method : methods) {
+
+            if (isMethodEquals(method, methodName, parameters))
+            {
+                try {
+                    return method.invoke(object, parameters);
+                } catch (IllegalAccessException e) {
+                    e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+                } catch (InvocationTargetException e) {
+                    e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+                }
+            }
+        }
+        return null;
+    }
+
     protected Statement getRealStatement(Statement ps) {
         try
         {
@@ -192,11 +263,12 @@ public class OracleDriverDefinition extends AbstractDriverDefinition {
      */
     @Override
     public boolean registerPreparedStatementReturnParam(String sqlText, PreparedStatement ps, int idx) throws SQLException {
-        OraclePreparedStatement ops = (OraclePreparedStatement)getRealStatement(ps);
+        PreparedStatement ops = (PreparedStatement)getRealStatement(ps);
+
         Pattern p = Pattern.compile("^\\s*INSERT.+RETURNING.+INTO\\s+", Pattern.CASE_INSENSITIVE);
         Matcher m = p.matcher(sqlText);
         if (m.find()) {
-            ops.registerReturnParameter(idx, Types.BIGINT);
+            invoke(ps, "registerReturnParameter", idx, Types.BIGINT);
             return true;
         }
         return false;
@@ -210,8 +282,8 @@ public class OracleDriverDefinition extends AbstractDriverDefinition {
      */
     @Override
     public long getPreparedStatementReturnParam(PreparedStatement ps) throws SQLException {
-        OraclePreparedStatement ops = (OraclePreparedStatement)getRealStatement(ps);
-        ResultSet rs = ops.getReturnResultSet();
+        PreparedStatement ops = (PreparedStatement)getRealStatement(ps);
+        ResultSet rs = (ResultSet) invoke(ps, "getReturnResultSet");
         try {
             if (rs.next()) {
                 // Assuming that primary key will not be larger as long max value
